@@ -6,12 +6,15 @@ import netifaces
 import subprocess
 import math
 import datetime
+import csv
 
 CONFIG = {
 	"zmqport": "tcp://172.17.0.1:5556"
 	}
+
 # Configuration File
-#CONFIGFILE = '/opt/mavgeris/config'
+# CONFIGFILE = '/opt/mavgeris/config'
+
 # Default Values
 EXPCONFIG = {
         "w1": 1,
@@ -33,23 +36,37 @@ EXPCONFIG = {
         }
 
 def main():
-    #try:
-    #    with open(CONFIGFILE) as configfd:
-    #        EXPCONFIG.update(json.load(configfd))
-    #except Exception as e:
-    #    print "Cannot retrive expconfig {}".format(e)
-        #raise e
-    #ifnames = netifaces.interfaces() # available interfaces, "op0" & "op1"
-    #print ifnames
-
-
-    #out = subprocess.check_output(["iperf3", "-c", "10.0.0.50", "-u", "-R", "-B", ipaddrs, "-J"])
-    #j_out = json.loads(out) # parse json output into dict
-    #packets = j_out['end']['streams'][0]['udp']['packets'] # select metric of interest
-    #print packets
+    # try:
+    #     with open(CONFIGFILE) as configfd:
+    #         EXPCONFIG.update(json.load(configfd))
+    # except Exception as e:
+    #     print "Cannot retrive expconfig {}".format(e)
+    # ifnames = netifaces.interfaces() # available interfaces, "op0" & "op1"
+    # print ifnames
     
+    # Create qoeqos table
+    with open('/opt/mavgeris/qoe-qos-table.csv', 'rb') as f:
+        reader = csv.reader(f)
+        qoeqos = list(reader)
+        column_headers = qoeqos.pop(0) # remove column headers
+        qoeqos = [map(float, row) for row in qoeqos] # make every element a float
+        qoe = [row.pop(0) for row in qoeqos] # only qoe
+        qos = qoeqos # now containing only qos
+        maxs = [max([row[i] for row in qoeqos]) for i in range(0,len(column_headers)-1)] # collect max values for every qos metric
+        qos = [[row[i]/maxs[i] for i in range (0,len(column_headers)-1)] for row in qos] # normalize qos values
+        
+   # with open('/monroe/results/results.txt', 'a') as f:
+   #     f.write(str(qoe))
+   #     f.write('\n')
+   #     f.write(str(maxs))
+   #     f.write('\n')
+   #     f.write(str(qos))
+   #     f.write('\n\n')
+ 
+   
     while True:
         collect_stats()
+
 
 # Helper functions
 def collect_stats():
@@ -84,6 +101,7 @@ def collect_stats():
         except subprocess.CalledProcessError, e:          
             with open('/monroe/results/results.txt', 'a') as f:
                 f.write("iperf error\n\n")
+            u0 = 0
     else:
         with open('/monroe/results/results.txt', 'a') as f:
             f.write('op0 is unavailable' + '\n\n')
@@ -115,13 +133,17 @@ def collect_stats():
                 sec1 = jout1['end']['streams'][0]['udp']['seconds']
                 f.write("seconds: " + str(sec1) + "\n")   
                 u1 = utility_calculation(bps1, lost_prcnt1, jitter1, ooo1)
-                f.write("utility: " + str(u1) + "\n\n")   
+                f.write("utility: " + str(u1) + "\n")
+                f.write("--------------------------------------------------\n\n")
         except subprocess.CalledProcessError, e:          
             with open('/monroe/results/results.txt', 'a') as f:
                 f.write("iperf error \n\n")
+                f.write("--------------------------------------------------\n\n")
+            u1 = 0
     else:
         with open('/monroe/results/results.txt', 'a') as f:
             f.write('op1 is unavailable' + '\n\n')
+            f.write("--------------------------------------------------\n")
         u1 = 0
 
 def check_if(ifname):
@@ -153,6 +175,8 @@ def utility_calculation(rate, ploss, jitter, ooop):
             w5*max((1-(math.log(1+c5*jitter,10)/math.log(1+c5*jittermax,10))),0) + w7*ooop
     return u
 
+def total_utility_calculation():
+    return tu
 
 if __name__ == "__main__":
     main()
