@@ -1,0 +1,20 @@
+FROM monroe/base
+
+MAINTAINER avgeris.marios@gmail.com
+
+RUN mkdir -p /opt/mavgeris
+
+RUN apt-get update && apt-get install -y \
+    python \
+    python-pip \
+    traceroute \
+    iperf3 \
+    && apt-get clean
+
+COPY files/* /opt/mavgeris/
+
+RUN pip install -r /opt/mavgeris/requirements.txt
+
+#Default cmd to run
+#ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/opt/mavgeris/myscript.sh"]
+CMD [ "python", "/opt/mavgeris/test_exp.py"]
