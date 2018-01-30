@@ -13,7 +13,7 @@ CONFIG = {
 	}
 
 # Configuration File
-# CONFIGFILE = '/opt/mavgeris/config'
+CONFIGFILE = '/opt/mavgeris/config'
 
 # Default Values
 EXPCONFIG = {
@@ -36,13 +36,11 @@ EXPCONFIG = {
         }
 
 def main():
-    # try:
-    #     with open(CONFIGFILE) as configfd:
-    #         EXPCONFIG.update(json.load(configfd))
-    # except Exception as e:
-    #     print "Cannot retrive expconfig {}".format(e)
-    # ifnames = netifaces.interfaces() # available interfaces, "op0" & "op1"
-    # print ifnames
+    try:
+        with open(CONFIGFILE) as configfd:
+            EXPCONFIG.update(json.load(configfd))
+    except Exception as e:
+        print "Cannot retrive expconfig {}".format(e)
     
     # Create qoeqos table
     with open('/opt/mavgeris/qoe-qos-table.csv', 'rb') as f:
@@ -55,21 +53,22 @@ def main():
         maxs = [max([row[i] for row in qoeqos]) for i in range(0,len(column_headers)-1)] # collect max values for every qos metric
         qos = [[row[i]/maxs[i] for i in range (0,len(column_headers)-1)] for row in qos] # normalize qos values
         
-   # with open('/monroe/results/results.txt', 'a') as f:
-   #     f.write(str(qoe))
-   #     f.write('\n')
-   #     f.write(str(maxs))
-   #     f.write('\n')
-   #     f.write(str(qos))
-   #     f.write('\n\n')
+    # with open('/monroe/results/results.txt', 'a') as f:
+    #    f.write(str(qoe))
+    #    f.write('\n')
+    #    f.write(str(maxs))
+    #    f.write('\n')
+    #    f.write(str(qos))
+    #    f.write('\n\n')
  
-   
     while True:
-        collect_stats()
-
+        selected_if = collect_stats(qos, qoe, maxs)
+        with open('/monroe/results/results.txt', 'a') as f:
+            f.write("Preferable interface: " + selected_if + "\n")
+            f.write("--------------------------------------------------\n\n")
 
 # Helper functions
-def collect_stats():
+def collect_stats(qos, qoe, maxs):
     # Check availability of interfaces of interest
     if check_if('op0'):
         ipaddr0 = str(netifaces.ifaddresses('op0')[netifaces.AF_INET][0]['addr']) # ip of interface op0
@@ -97,15 +96,29 @@ def collect_stats():
                 sec0 = jout0['end']['streams'][0]['udp']['seconds']
                 f.write("seconds: " + str(sec0) + "\n")   
                 u0 = utility_calculation(bps0, lost_prcnt0, jitter0, ooo0)
-                f.write("utility: " + str(u0) + "\n\n")   
+                f.write("utility: " + str(u0) + "\n") 
+                qoe0 = qoe_calculation(qos, qoe, maxs, [bps0, lost_prcnt0/100, jitter0, ooo0])
+                f.write("qoe: " + str(qoe0) + "\n")
+                total_utility0 = u0 + qoe0
+                f.write("total utility: " + str(total_utility0) + "\n\n")
         except subprocess.CalledProcessError, e:          
             with open('/monroe/results/results.txt', 'a') as f:
-                f.write("iperf error\n\n")
-            u0 = 0
+                f.write("!!! iperf-related error !!!\n")
+                u0 = 0
+                f.write("utility: " + str(u0) + "\n") 
+                qoe0 = 0
+                f.write("qoe: " + str(qoe0) + "\n") 
+                total_utility0 = 0
+                f.write("total utility: " + str(total_utility0) + "\n\n") 
     else:
         with open('/monroe/results/results.txt', 'a') as f:
-            f.write('op0 is unavailable' + '\n\n')
-        u0 = 0
+            f.write('!!! op0 is unavailable !!!' + '\n')
+            u0 = 0
+            f.write("utility: " + str(u0) + "\n") 
+            qoe0 = 0
+            f.write("qoe: " + str(qoe0) + "\n") 
+            total_utility0 = 0
+            f.write("total utility: " + str(total_utility0) + "\n\n") 
 
     if check_if('op1'):
         ipaddr1 = str(netifaces.ifaddresses('op1')[netifaces.AF_INET][0]['addr']) # ip of interface op1
@@ -113,7 +126,7 @@ def collect_stats():
             output1 = subprocess.check_output(["iperf3", "-c", "91.138.176.151", "-u", "-R", "-B", ipaddr1, "-J", "-p", "5001", "-t", "2"])
             jout1 = json.loads(output1) # parse json output into dict
             # collect actual interface stats
-            with open('/monroe/results/results.txt', 'a') as f:
+            with open('/monroe/results/results.txt', 'a') as f:  
                 end1 = jout1['end']['streams'][0]['udp']['end']
                 f.write('op1 at ' + str(datetime.datetime.utcnow()) + ": \n")
                 bytes1 = jout1['end']['streams'][0]['udp']['bytes']
@@ -134,17 +147,33 @@ def collect_stats():
                 f.write("seconds: " + str(sec1) + "\n")   
                 u1 = utility_calculation(bps1, lost_prcnt1, jitter1, ooo1)
                 f.write("utility: " + str(u1) + "\n")
-                f.write("--------------------------------------------------\n\n")
+                qoe1 = qoe_calculation(qos, qoe, maxs, [bps1, lost_prcnt1/100, jitter1, ooo1])
+                f.write("qoe: " + str(qoe1) + "\n")
+                total_utility1 = u1 + qoe1
+                f.write("total utility: " + str(total_utility1) + "\n")
+                f.write("--------------------------------------------------\n")
         except subprocess.CalledProcessError, e:          
             with open('/monroe/results/results.txt', 'a') as f:
-                f.write("iperf error \n\n")
-                f.write("--------------------------------------------------\n\n")
-            u1 = 0
+                f.write("!!! iperf-related error !!!\n")
+                u1 = 0
+                f.write("utility: " + str(u1) + "\n") 
+                qoe1 = 0
+                f.write("qoe: " + str(qoe1) + "\n") 
+                total_utility1 = 0
+                f.write("total utility: " + str(total_utility1) + "\n") 
+                f.write("--------------------------------------------------\n")
     else:
         with open('/monroe/results/results.txt', 'a') as f:
-            f.write('op1 is unavailable' + '\n\n')
+            f.write('!!! op1 is unavailable !!!' + '\n')
+            u1 = 0
+            f.write("utility: " + str(u1) + "\n") 
+            qoe1 = 0
+            f.write("qoe: " + str(qoe1) + "\n") 
+            total_utility1 = 0
+            f.write("total utility: " + str(total_utility1) + "\n") 
             f.write("--------------------------------------------------\n")
-        u1 = 0
+
+    return 'op0' if total_utility0 > total_utility1 else 'op1'
 
 def check_if(ifname):
     """Check if interface is up and have got an IP address."""
@@ -175,8 +204,20 @@ def utility_calculation(rate, ploss, jitter, ooop):
             w5*max((1-(math.log(1+c5*jitter,10)/math.log(1+c5*jittermax,10))),0) + w7*ooop
     return u
 
-def total_utility_calculation():
-    return tu
+def qoe_calculation(tr_qos, tr_qoe, maxs, iperf_res):
+    norm_res = [iperf_res[i]/maxs[i] for i in range(0,len(iperf_res))] # normalize iperf results
+    # list containing euclidean distances between iperf_results and trained data
+    dist = [math.sqrt(sum([(a - b)**2 for a, b in zip(norm_res, row)])) for row in tr_qos] 
+    # select the qoe corresponding to the qos vector with the minimum euclidean distance from the iperf_results
+    qoe = tr_qoe[dist.index(min(dist))]
+    # with open('/monroe/results/results.txt', 'a') as f:
+    #   f.write(str(norm_res))
+    #   f.write('\n')
+    #   f.write(str(dist))
+    #   f.write('\n')
+    #   f.write(str(qoe))
+    #   f.write('\n\n')
+    return qoe
 
 if __name__ == "__main__":
     main()
