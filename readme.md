@@ -1,134 +1,87 @@
+# Overview
 
-# Experiment template
-A template to show of some of the capabilities of the Monroe platform.
+In UNIQUE, we aspire to evolve, implement and experiment with a unified utility-based framework based on both QoS (network-centric) and QoE (user-centric) features and parameters, which allows to enhance, formulate and improve various advanced network operations in mobile broadband (MBB) infrastructures (network selection, offloading, resource allocation, etc.).  
 
-The experiment will download a url (file) over http using curl from a specified
-operator while at the same time record the GPS posistion.
-If the operator is not available in the node the experiment will fail.
-The default values are (can be overridden by providing /monroe/config):
+In this software extension, the operation and benefit of the proposed utility-based framework, in a utility-based access network selection application is implemented. The framework is used to evaluate the combined QoE-QoS quality of an MBB interface and determine the more superior. This can be further used for key user-desired and bandwidth intensive network services and applications, such as multimedia downloading.
+
+## Experiment template
+A template to show of some of the capabilities of this software module.
+
+The experiment will constantly communicate with a public iperf server in
+order to evaluate the condition (e.g. jitter, transmission rate, packet loss)
+of the routes selected by each of the node's available interfaces. 
+
+A utility function will be applied to the metrics collected ("metrics vector"), 
+and the preferable interface will be selected based on a total score.
+
+Accumulated in this total score will be a QoE value derived from a pre-compiled
+matrix containing the QoE values corresponding to some metrics vectors (QoS). 
+These values have been collected off-line from real-world experimenters.
+
+The off-line metrics vector scoring the minimum euclidean distance with the on-line
+metrics vector, will give the corresponding QoE value.
+ 
+The default values for the weights used in the utility function are 
+(can be overridden by providing a config file):
 ```
 {
-        # The following value are specific to the monroe platform
-        "guid": "no.guid.in.config.file",  # Overridden by scheduler
-        "nodeid": "no.nodeid.in.config.file",  # Overridden by scheduler
-        "storage": 104857600,  # Overridden by scheduler
-        "traffic": 104857600,  # Overridden by scheduler
-        "script": "jonakarl/experiment-template",  # Overridden by scheduler
-        "zmqport": "tcp://172.17.0.1:5556",
-        "modem_metadata_topic": "MONROE.META.DEVICE.MODEM",
-        "gps_metadata_topic": "MONROE.META.DEVICE.GPS",
-        # "dataversion": 1,  #  Version of experiment
-        # "dataid": "MONROE.EXP.JONAKARL.TEMPLATE",  #  Name of experiement
-        "meta_grace": 120,  # Grace period to wait for interface metadata
-        "exp_grace": 120,  # Grace period before killing experiment
-        "meta_interval_check": 5,  # Interval to check if interface is up
-        "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
-        "resultdir": "/monroe/results/",
-        # These values are specic for this experiment
-        "operator": "Telenor SE",
-        "url": "http://193.10.227.25/test/1000M.zip",
-        "size": 3*1024 - 1,  # The maximum size in Kbytes to download
-        "time": 3600  # The maximum time in seconds for a download
+	"w1": 1,
+        "w2": 1,
+        "w3": 1,
+        "w4": 1,
+        "w5": 1,
+        "w6": 1,
+        "w7": 0.01,
+        "c1": 1000000,
+        "c2": 1,
+        "c3": 1,
+        "c4": 0.01,
+        "c5": 0.01,
+        "c6": 1,
+        "c7": 1,
+        "plossmax": 100,
+        "jittermax": 300
 }
+
 ```
 The download will abort when either size OR time OR actual size of the "url" is
- downloaded.
+downloaded.
 
-All debug/error information will be printed on stdout
- depending on the "verbosity" variable.
-
-## Overview of code structure
-The experiment consists of one main process and two sub processes.
- 1. One process listen to modem and gps information
- 3. One process executes the experiment
- 4. The main process are managing the two processes above
-
-### Information sharing between processes
-The information are shared between the processes by two thread safe
-datastructures (a python "Manager" object).
-For modem information the latest metadata update (for the specified operator)
-are stored in a dictionary.
-The gps information are stored in a list that are continuously appended as
-information is received.
-
-### The Metadata (sub)process
-The responsibility for this process is to:
- 1. Listen to gps and modem messages sent on the ZeroMQ bus
- 2. Update the shared datastructures
-
-### The experiment (sub)process
-The responsibility for this process is to:
- 1. Get information from (read) the shared datastructures
- 2. run the experiment
- 3. save the result when finished
-
-
-## Requirements
-
-These directories and files must exist and be read/writable by the user/process
-running the container:
- * /monroe/config (added by the scheduler in the nodes)
- * "resultdir" (from /monroe/config see defaults above)    
-
-
-## The experiment will execute a statement similar to running curl like this
+## The experiment will execute a statement similar to running iperf like this
 ```bash
-curl -o /dev/null --raw --silent --write-out "{ remote: %{remote_ip}:%{remote_port}, size: %{size_download}, speed: %{speed_download}, time: %{time_total}, time_download: %{time_starttransfer} }" --interface eth0 --max-time 100 --range 0-100 http://193.10.227.25/test/1000M.zip
+iperf3 -c 91.138.176.151 -p 5001 -u -R -t 2 -J
 ```
-
-## Docker misc usage
- * List running containers
-     * ```docker ps```
- * Debug shell
-     * ```docker run -i -t --entrypoint bash --net=host template```
- * Normal execution with output to stdout
-     * ```docker run -i -t --net=host template```
- * Attach running container (with shell)
-    * ```docker exec -i -t [container runtime name] bash```
- * Get container logs (stderr and stdout)
-    * ```docker logs [container runtime name]```
 
 ## Sample output
-The experiment will produce a single line JSON object similar to this (pretty printed for readability)
+The experiment will produce an output similar to this:
 ```
-{
-    "Bytes": 30720000,
-    "DataId": "313.123213.123123.123123",
-    "DataVersion": 1,
-    "DownloadTime": 2.716,
-    "GPSPositions": [
-          {
-            "Altitude": 225.0,
-            "DataId": "MONROE.META.DEVICE.GPS",
-            "DataVersion": 1,
-            "Latitude": 59.404697,
-            "Longitude": 13.581558,
-            "NMEA": "$GPGGA,094832.0,5924.281896,N,01334.893500,E,1,05,1.6,225.0,M,35.0,M,,*5D\r\n",
-            "SatelliteCount": 5,
-            "SequenceNumber": 14,
-            "Timestamp": 1465551728
-          },
-          {
-            "DataId": "MONROE.META.DEVICE.GPS",
-            "DataVersion": 1,
-            "Latitude": 59.404697,
-            "Longitude": 13.581558,
-            "NMEA": "$GPRMC,094832.0,A,5924.281896,N,01334.893500,E,0.0,,100616,0.0,E,A*2B\r\n",
-            "SequenceNumber": 15,
-            "Timestamp": 1465551728
-          }
-    ],
-    "Guid": "sha256:15979bc2e2449b0011826c2bb8668df980da88221af3fc7916cb2eba4f2296c1.0.45.15",
-    "Host": "193.10.227.25",
-    "Iccid": "89460850007006922138",
-    "InterfaceName": "usb0",
-    "NodeId": "45",
-    "Operator": "Telenor SE",
-    "Port": "80",
-    "SequenceNumber": 1,
-    "SetupTime": 0.004,
-    "Speed": 11295189.0,
-    "TimeStamp": 1465551458.099917,
-    "TotalTime": 2.72
-}
+op0 at 2018-01-30 14:21:16.966311:
+bytes: 294912
+bits_per_second: 1179340.25218
+jitter_ms: 24.280589
+lost_percent: 26.315789
+out_of_order: 0
+packets: 19
+lost_packets: 5
+seconds: 2.000522
+utility: 2.07118880123
+qoe: 1.0
+total utility: 3.07118880123
+
+op1 at 2018-01-30 14:21:20.854210: 
+bytes: 294912
+bits_per_second: 1179296.54224
+jitter_ms: 30.680238
+lost_percent: 11.111111
+out_of_order: 0
+packets: 18
+lost_packets: 2
+seconds: 2.000596
+utility: 2.21612198035
+qoe: 3.0
+total utility: 5.21612198035
+--------------------------------------------------
+Preferable interface: op1
+--------------------------------------------------
+
 ```
