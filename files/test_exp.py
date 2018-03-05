@@ -14,6 +14,7 @@ CONFIG = {
 
 # Configuration File
 CONFIGFILE = '/opt/mavgeris/config'
+# CONFIGFILE = 'https://www.dropbox.com/s/rk54woyfl439dur/config'
 
 # Default Values
 EXPCONFIG = {
@@ -36,11 +37,6 @@ EXPCONFIG = {
         }
 
 def main():
-    try:
-        with open(CONFIGFILE) as configfd:
-            EXPCONFIG.update(json.load(configfd))
-    except Exception as e:
-        print "Cannot retrive expconfig {}".format(e)
     
     # Create qoeqos table
     with open('/opt/mavgeris/qoe-qos-table.csv', 'rb') as f:
@@ -62,9 +58,17 @@ def main():
     #    f.write('\n\n')
  
     while True:
+        subprocess.call(["wget", "-q", "https://www.dropbox.com/s/rk54woyfl439dur/config", "-O", "/opt/mavgeris/config"])
+        try:
+            with open(CONFIGFILE) as configfd:
+                EXPCONFIG.update(json.load(configfd))
+        except Exception as e:
+            print "Cannot retrive expconfig {}".format(e)
+
         selected_if = collect_stats(qos, qoe, maxs)
         with open('/monroe/results/results.txt', 'a') as f:
             f.write("Preferable interface: " + selected_if + "\n")
+            f.write("w1 = " + str(EXPCONFIG['w1']) + "\n")
             f.write("--------------------------------------------------\n\n")
 
 # Helper functions
