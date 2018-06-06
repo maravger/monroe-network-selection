@@ -13,6 +13,8 @@ RUN apt-get update && apt-get install -y \
 
 COPY files/* /opt/mavgeris/
 
+RUN apt-get install -y gcc
+RUN apt-get install -y python-dev
 RUN pip install -r /opt/mavgeris/requirements.txt
 
 #Default cmd to run

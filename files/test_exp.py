@@ -77,7 +77,7 @@ def collect_stats(qos, qoe, maxs):
     if check_if('op0'):
         ipaddr0 = str(netifaces.ifaddresses('op0')[netifaces.AF_INET][0]['addr']) # ip of interface op0
         try:
-            output0 = subprocess.check_output(["iperf3", "-c", "91.138.176.151", "-u", "-R", "-B", ipaddr0, "-J", "-p", "5001", "-t", "2"])
+            output0 = subprocess.check_output(["iperf3", "-c", "62.38.249.51", "-u", "-R", "-B", ipaddr0, "-J", "-p", "5201", "-t", "2"])
             jout0 = json.loads(output0) # parse json output into dict
             # collect actual interface stats
             with open('/monroe/results/results.txt', 'a') as f:
@@ -108,6 +108,8 @@ def collect_stats(qos, qoe, maxs):
         except subprocess.CalledProcessError, e:          
             with open('/monroe/results/results.txt', 'a') as f:
                 f.write("!!! iperf-related error !!!\n")
+                f.write("interface's IP: " + str(ipaddr0) + "\n")
+                f.write("node's available interfaces: " + str(netifaces.interfaces())) 
                 u0 = 0
                 f.write("utility: " + str(u0) + "\n") 
                 qoe0 = 0
@@ -127,7 +129,7 @@ def collect_stats(qos, qoe, maxs):
     if check_if('op1'):
         ipaddr1 = str(netifaces.ifaddresses('op1')[netifaces.AF_INET][0]['addr']) # ip of interface op1
         try:
-            output1 = subprocess.check_output(["iperf3", "-c", "91.138.176.151", "-u", "-R", "-B", ipaddr1, "-J", "-p", "5001", "-t", "2"])
+            output1 = subprocess.check_output(["iperf3", "-c", "62.38.249.51", "-u", "-R", "-B", ipaddr1, "-J", "-p", "5201", "-t", "2"])
             jout1 = json.loads(output1) # parse json output into dict
             # collect actual interface stats
             with open('/monroe/results/results.txt', 'a') as f:  
@@ -159,6 +161,8 @@ def collect_stats(qos, qoe, maxs):
         except subprocess.CalledProcessError, e:          
             with open('/monroe/results/results.txt', 'a') as f:
                 f.write("!!! iperf-related error !!!\n")
+                f.write("interface's IP: " + str(ipaddr0) + "\n")
+                f.write("node's available interfaces: " + str(netifaces.interfaces())) 
                 u1 = 0
                 f.write("utility: " + str(u1) + "\n") 
                 qoe1 = 0
