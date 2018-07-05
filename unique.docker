@@ -2,6 +2,8 @@ FROM monroe/base
 
 MAINTAINER avgeris.marios@gmail.com
 
+ENV APT_OPTS -y --allow-downgrades --allow-remove-essential --allow-change-held-packages --no-install-recommends --no-install-suggests --allow-unauthenticated
+
 RUN mkdir -p /opt/mavgeris
 
 RUN apt-get update && apt-get install -y \
@@ -9,13 +11,17 @@ RUN apt-get update && apt-get install -y \
     python-pip \
     traceroute \
     iperf3 \
-    && apt-get clean
+    gcc \
+    python-dev
 
 COPY files/* /opt/mavgeris/
 
-RUN apt-get install -y gcc
-RUN apt-get install -y python-dev
-RUN pip install -r /opt/mavgeris/requirements.txt
+RUN pip install -r /opt/mavgeris/requirements.txt \
+    && apt-get remove ${APT_OPTS} python-pip \
+    && apt-get remove ${APT_OPTS} gcc \
+    && apt-get remove ${APT_OPTS} python-dev \
+    && apt-get clean ${APT_OPTS} \
+    && apt-get autoremove ${APT_OPTS}
 
 #Default cmd to run
 #ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/opt/mavgeris/myscript.sh"]
