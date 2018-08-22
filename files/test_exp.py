@@ -20,21 +20,8 @@ QOSQOE = 'https://www.dropbox.com/s/6mtlssomfwnqd3m/QoS-QoE-table-UNIQUE_oper4_t
 # Default Values
 EXPCONFIG = {
         "w1": 1,
-        "w2": 1,
-        "w3": 1,
-        "w4": 1,
-        "w5": 1,
-        "w6": 1,
         "w7": 0.01,
         "c1": 1000000,
-        "c2": 1,
-        "c3": 1,
-        "c4": 0.01,
-        "c5": 0.01,
-        "c6": 1,
-        "c7": 1,
-        "plossmax": 100,
-        "jittermax": 300
         }
 
 def main():
@@ -47,7 +34,7 @@ def main():
             with open('/opt/mavgeris/qoe-qos-table.csv', 'wb') as result:
                 wtr= csv.writer( result )
                 for r in reader:
-                    wtr.writerow((r[0], r[1], r[2], r[3]))
+                    wtr.writerow((r[0], r[1], r[2]))
         with open('/opt/mavgeris/qoe-qos-table.csv', 'rb') as f:
             reader = csv.reader(f)
             qoeqos = list(reader)
@@ -60,14 +47,6 @@ def main():
     except Exception as e:
             print "Cannot retrieve qoe-qos reference table  {}".format(e)
         
-    # with open('/monroe/results/results.txt', 'a') as f:
-    #    f.write(str(qoe))
-    #    f.write('\n')
-    #    f.write(str(maxs))
-    #    f.write('\n')
-    #    f.write(str(qos))
-    #    f.write('\n\n')
- 
     while True:
         subprocess.call(["wget", "-q", "https://www.dropbox.com/s/rk54woyfl439dur/config", "-O", "/opt/mavgeris/config"])
         try:
