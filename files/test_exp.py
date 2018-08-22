@@ -14,7 +14,7 @@ CONFIG = {
 
 # Configuration File
 CONFIGFILE = '/opt/mavgeris/config'
-QOSQOE = 'https://www.dropbox.com/s/qcf6lruypj0sjri/QoS-QoE-table-UNIQUE_oper4.csv'
+QOSQOE = 'https://www.dropbox.com/s/6mtlssomfwnqd3m/QoS-QoE-table-UNIQUE_oper4_tcp.csv'
 # CONFIGFILE = 'https://www.dropbox.com/s/rk54woyfl439dur/config'
 
 # Default Values
@@ -80,7 +80,7 @@ def main():
         with open('/monroe/results/results.txt', 'a') as f:
             f.write("Preferable interface: " + selected_if + "\n")
             f.write("w1 = " + str(EXPCONFIG['w1']) + "\n")
-            f.write("--------------------------------------------------\n\n")
+            f.write("--------------------*using tcp metrics*------------------------------\n\n")
 
 # Helper functions
 def collect_stats(qos, qoe, maxs):
@@ -88,32 +88,23 @@ def collect_stats(qos, qoe, maxs):
     if check_if('op0'):
         ipaddr0 = str(netifaces.ifaddresses('op0')[netifaces.AF_INET][0]['addr']) # ip of interface op0
         try:
-            output0 = subprocess.check_output(["iperf3", "-c", "62.38.249.51", "-u", "-R", "-B", ipaddr0, "-J", "-p", "5201", "-t", "2"])
+            output0 = subprocess.check_output(["iperf3", "-c", "62.38.249.51", "-R", "-B", ipaddr0, "-J", "-p", "5201", "-t", "2"])
             jout0 = json.loads(output0) # parse json output into dict
             # collect actual interface stats
             with open('/monroe/results/results.txt', 'a') as f:
-                end0 = jout0['end']['streams'][0]['udp']['end']
+                end0 = jout0['end']['streams'][0]['sender']['end']
                 f.write('op0 at ' + str(datetime.datetime.utcnow()) + ":\n")
-                bytes0 = jout0['end']['streams'][0]['udp']['bytes']
+                bytes0 = jout0['end']['streams'][0]['sender']['bytes']
                 f.write("bytes: " + str(bytes0) + "\n")
-                bps0 = jout0['end']['streams'][0]['udp']['bits_per_second']         
+                bps0 = jout0['end']['streams'][0]['sender']['bits_per_second']         
                 f.write("bits_per_second: " + str(bps0) + "\n")
-                jitter0 = jout0['end']['streams'][0]['udp']['jitter_ms']
-                f.write("jitter_ms: " + str(jitter0) + "\n")   
-                lost_prcnt0 = jout0['end']['streams'][0]['udp']['lost_percent']     
-                f.write("lost_percent: " + str(lost_prcnt0) + "\n")   
-                ooo0 = jout0['end']['streams'][0]['udp']['out_of_order']
-                f.write("out_of_order: " + str(ooo0) + "\n")   
-                pcks0 = jout0['end']['streams'][0]['udp']['packets']
-                f.write("packets: " + str(pcks0) + "\n")   
-                lost_pcks0 = jout0['end']['streams'][0]['udp']['lost_packets']
-                f.write("lost_packets: " + str(lost_pcks0) + "\n")   
+                retransmits0 = jout0['end']['streams'][0]['sender']['retransmits']
+                f.write("retransmits: " + str(retransmits0) + "\n")   
                 sec0 = jout0['end']['streams'][0]['udp']['seconds']
                 f.write("seconds: " + str(sec0) + "\n")   
-                u0 = utility_calculation(bps0, lost_prcnt0, jitter0, ooo0)
+                u0 = utility_calculation(bps0, retransmits0)
                 f.write("utility: " + str(u0) + "\n") 
-                #qoe0 = qoe_calculation(qos, qoe, maxs, [bps0, lost_prcnt0/100, jitter0, ooo0])              
-                qoe0 = qoe_calculation(qos, qoe, maxs, [bps0, lost_prcnt0/100, ooo0])
+                qoe0 = qoe_calculation(qos, qoe, maxs, [bps0, retransmits0])
                 f.write("qoe: " + str(qoe0) + "\n")
                 total_utility0 = u0 + qoe0
                 f.write("total utility: " + str(total_utility0) + "\n\n")
@@ -141,32 +132,23 @@ def collect_stats(qos, qoe, maxs):
     if check_if('op1'):
         ipaddr1 = str(netifaces.ifaddresses('op1')[netifaces.AF_INET][0]['addr']) # ip of interface op1
         try:
-            output1 = subprocess.check_output(["iperf3", "-c", "62.38.249.51", "-u", "-R", "-B", ipaddr1, "-J", "-p", "5201", "-t", "2"])
+            output1 = subprocess.check_output(["iperf3", "-c", "62.38.249.51", "-R", "-B", ipaddr1, "-J", "-p", "5201", "-t", "2"])
             jout1 = json.loads(output1) # parse json output into dict
             # collect actual interface stats
             with open('/monroe/results/results.txt', 'a') as f:  
-                end1 = jout1['end']['streams'][0]['udp']['end']
+                end1 = jout1['end']['streams'][0]['sender']['end']
                 f.write('op1 at ' + str(datetime.datetime.utcnow()) + ": \n")
-                bytes1 = jout1['end']['streams'][0]['udp']['bytes']
+                bytes1 = jout1['end']['streams'][0]['sender']['bytes']
                 f.write("bytes: " + str(bytes1) + "\n")
-                bps1 = jout1['end']['streams'][0]['udp']['bits_per_second']
+                bps1 = jout1['end']['streams'][0]['sender']['bits_per_second']
                 f.write("bits_per_second: " + str(bps1) + "\n")
-                jitter1 = jout1['end']['streams'][0]['udp']['jitter_ms']
-                f.write("jitter_ms: " + str(jitter1) + "\n")   
-                lost_prcnt1 = jout1['end']['streams'][0]['udp']['lost_percent']
-                f.write("lost_percent: " + str(lost_prcnt1) + "\n")   
-                ooo1 = jout1['end']['streams'][0]['udp']['out_of_order']
-                f.write("out_of_order: " + str(ooo1) + "\n")   
-                pcks1 = jout1['end']['streams'][0]['udp']['packets']
-                f.write("packets: " + str(pcks1) + "\n")   
-                lost_pcks1 = jout1['end']['streams'][0]['udp']['lost_packets']
-                f.write("lost_packets: " + str(lost_pcks1) + "\n")   
+                retransmits1 = jout1['end']['streams'][0]['sender']['retransmits']
+                f.write("retransmits: " + str(retransmits1) + "\n")   
                 sec1 = jout1['end']['streams'][0]['udp']['seconds']
                 f.write("seconds: " + str(sec1) + "\n")   
-                u1 = utility_calculation(bps1, lost_prcnt1, jitter1, ooo1)
+                u1 = utility_calculation(bps1, retransmits1)
                 f.write("utility: " + str(u1) + "\n")
-                #qoe1 = qoe_calculation(qos, qoe, maxs, [bps1, lost_prcnt1/100, jitter1, ooo1])
-                qoe1 = qoe_calculation(qos, qoe, maxs, [bps1, lost_prcnt1/100 , ooo1])
+                qoe1 = qoe_calculation(qos, qoe, maxs, [bps1, retransmits1])
                 f.write("qoe: " + str(qoe1) + "\n")
                 total_utility1 = u1 + qoe1
                 f.write("total utility: " + str(total_utility1) + "\n")
@@ -201,28 +183,11 @@ def check_if(ifname):
     return (ifname in netifaces.interfaces() and
             netifaces.AF_INET in netifaces.ifaddresses(ifname))
 
-def utility_calculation(rate, ploss, jitter, ooop):
+def utility_calculation(rate, retransmits):
     w1 = EXPCONFIG['w1']
-    w2 = EXPCONFIG['w2']
-    w3 = EXPCONFIG['w3']
-    w4 = EXPCONFIG['w4']
-    w5 = EXPCONFIG['w5']
-    w6 = EXPCONFIG['w6']
     w7 = EXPCONFIG['w7']
     c1 = EXPCONFIG['c1']
-    c2 = EXPCONFIG['c2']
-    c3 = EXPCONFIG['c3']
-    c4 = EXPCONFIG['c4']
-    c5 = EXPCONFIG['c5']
-    c6 = EXPCONFIG['c6']
-    c7 = EXPCONFIG['c7']
-    plossmax = EXPCONFIG['plossmax']
-    jittermax = EXPCONFIG['jittermax']
-    # ploss = ploss/100 # percentage
-    # jitter = jitter/100 # seconds
-    # rate = rate/1000000 # Mbits/sec
-    u = w1*((rate/c1)**2)/(1+((rate/c1)**2)) + w4*max((1-(math.log(1+c4*ploss,10)/math.log(1+c4*plossmax,10))),0) + \
-            w5*max((1-(math.log(1+c5*jitter,10)/math.log(1+c5*jittermax,10))),0) + w7*ooop
+    u = w1*((rate/c1)**2)/(1+((rate/c1)**2)) + w7*retransmits
     return u
 
 def qoe_calculation(tr_qos, tr_qoe, maxs, iperf_res):
