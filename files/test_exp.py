@@ -79,7 +79,7 @@ def collect_stats(qos, qoe, maxs):
                 f.write("bits_per_second: " + str(bps0) + "\n")
                 retransmits0 = jout0['end']['streams'][0]['sender']['retransmits']
                 f.write("retransmits: " + str(retransmits0) + "\n")   
-                sec0 = jout0['end']['streams'][0]['udp']['seconds']
+                sec0 = jout0['end']['streams'][0]['sender']['seconds']
                 f.write("seconds: " + str(sec0) + "\n")   
                 u0 = utility_calculation(bps0, retransmits0)
                 f.write("utility: " + str(u0) + "\n") 
@@ -123,7 +123,7 @@ def collect_stats(qos, qoe, maxs):
                 f.write("bits_per_second: " + str(bps1) + "\n")
                 retransmits1 = jout1['end']['streams'][0]['sender']['retransmits']
                 f.write("retransmits: " + str(retransmits1) + "\n")   
-                sec1 = jout1['end']['streams'][0]['udp']['seconds']
+                sec1 = jout1['end']['streams'][0]['sender']['seconds']
                 f.write("seconds: " + str(sec1) + "\n")   
                 u1 = utility_calculation(bps1, retransmits1)
                 f.write("utility: " + str(u1) + "\n")
