@@ -64,9 +64,9 @@ def single_test(queue, srv_address, port, duration, verbose):
 
 
 def utility_calculation(ploss, jitter):
-    w4 = 0.9
-    w5 = 0.1
-    u = (w4 * 1.0 * ploss / 100) + (w5 * 1.0 * jitter / 0.05)
+    w4 = 0.55
+    w5 = 0.45
+    u = (1.0 / ((w4 * ploss / 10) + (w5 * jitter / 0.5)))
     return u
 
 
@@ -122,13 +122,13 @@ def main(timestamp):
         fname = 'results' + timestamp + '.csv'
         tz_Athens = pytz.timezone('Europe/Athens')
         datetime_Athens = datetime.now(tz_Athens)
-        if (path1u > path2u):
+        if (path1u < path2u):
             chosen_path = 2
         else:
             chosen_path = 1
         file_exists = os.path.isfile(fname)    
         with open(fname, mode='a') as results:
-            headers = ['TOD', 'ploss1', 'jitter1', 'ploss2', 'jitter2', 'path1u', 'path2', 'chosen_path']
+            headers = ['TOD', 'ploss1', 'jitter1', 'ploss2', 'jitter2', 'path1u', 'path2u', 'chosen_path']
             results_writer = csv.writer(results, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             
             if not file_exists:
@@ -140,7 +140,7 @@ def main(timestamp):
             subprocess.call(['sudo', 'ip', 'route', 'del', '192.168.100.0/24', 'via', '192.168.6.1', 'dev', 'enp7s0f1'],stdout=devnull, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError:
             pass
-        if (path1u > path2u):
+        if (path1u < path2u):
             # choose path 2
             print(colored("Changing to path2", 'cyan'))
             try:
